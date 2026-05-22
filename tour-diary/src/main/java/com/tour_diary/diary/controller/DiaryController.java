@@ -2,6 +2,7 @@ package com.tour_diary.diary.controller;
 
 import com.tour_diary.diary.controller.dto.GenerateDiaryRequest;
 import com.tour_diary.diary.controller.dto.GenerateDiaryResponse;
+import com.tour_diary.diary.controller.dto.DiaryDebugResponse;
 import com.tour_diary.diary.service.DiaryGenerationService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,5 +29,10 @@ public class DiaryController {
     @GetMapping("/{diaryId}")
     public GenerateDiaryResponse getDiary(@PathVariable String diaryId) {
         return diaryGenerationService.getDiary(diaryId);
+    }
+
+    @GetMapping("/{diaryId}/debug")
+    public DiaryDebugResponse getDiaryDebug(@PathVariable String diaryId) {
+        return diaryGenerationService.getDiaryDebug(diaryId);
     }
 }

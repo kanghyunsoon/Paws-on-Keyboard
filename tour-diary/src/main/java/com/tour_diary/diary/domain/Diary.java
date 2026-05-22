@@ -15,8 +15,11 @@ public record Diary(
         String content,
         DiaryEmotion emotion,
         List<String> detectedObjects,
+        String visionAnalysis,
         String diaryPrompt,
         String imagePrompt,
+        String tourismPrompt,
+        String rawTourismResponse,
         String generatedImageUrl,
         List<RecommendedPlace> recommendedPlaces,
         Instant createdAt

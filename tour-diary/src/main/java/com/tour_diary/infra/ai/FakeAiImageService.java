@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 public class FakeAiImageService implements AiImageService {
 
     @Override
-    public String generateImage(String imagePrompt) {
+    public String generateImage(String imagePrompt, String diaryTitle, String diaryContent) {
         String key = Base64.getUrlEncoder()
                 .withoutPadding()
                 .encodeToString(imagePrompt.substring(0, Math.min(imagePrompt.length(), 64)).getBytes(StandardCharsets.UTF_8));

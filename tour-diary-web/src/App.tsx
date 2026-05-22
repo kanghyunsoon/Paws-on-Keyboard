@@ -1,6 +1,7 @@
 import {
   BookOpen,
   Camera,
+  Database,
   Image,
   Loader2,
   MapPinned,
@@ -8,9 +9,14 @@ import {
   Play,
   Sparkles,
 } from 'lucide-react';
-import { FormEvent, useMemo, useState } from 'react';
-import { generateDiary, type GenerateDiaryResponse } from './api';
-import { debugText, demoDiary } from './demoData';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import {
+  generateDiary,
+  getDiaryDebug,
+  type DiaryDebugResponse,
+  type GenerateDiaryResponse,
+} from './api';
+import { demoDebug, demoDiary } from './demoData';
 
 type Tab = 'result' | 'debug';
 
@@ -19,11 +25,25 @@ function App() {
   const [walkRecordId, setWalkRecordId] = useState('3');
   const [activeTab, setActiveTab] = useState<Tab>('result');
   const [diary, setDiary] = useState<GenerateDiaryResponse>(demoDiary);
+  const [debug, setDebug] = useState<DiaryDebugResponse>(demoDebug);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [useDemo, setUseDemo] = useState(true);
 
   const detectedText = useMemo(() => diary.detectedObjects.join(' · '), [diary.detectedObjects]);
+
+  useEffect(() => {
+    if (useDemo || activeTab !== 'debug' || diary.diaryId.startsWith('demo')) {
+      setDebug(demoDebug);
+      return;
+    }
+
+    getDiaryDebug(diary.diaryId)
+      .then(setDebug)
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : '디버그 정보를 불러오지 못했습니다.');
+      });
+  }, [activeTab, diary.diaryId, useDemo]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -31,6 +51,8 @@ function App() {
 
     if (useDemo) {
       setDiary(demoDiary);
+      setDebug(demoDebug);
+      setActiveTab('result');
       return;
     }
 
@@ -54,8 +76,8 @@ function App() {
             <PawPrint size={22} />
           </span>
           <div>
-            <strong>댕댕이 투어 일기</strong>
-            <span>AI 그림일기 생성</span>
+            <strong>Paws-on-Keyboard</strong>
+            <span>관광데이터 기반 반려견 AI 그림일기</span>
           </div>
         </div>
 
@@ -84,18 +106,18 @@ function App() {
         </form>
 
         <nav className="flow-list" aria-label="MVP 생성 흐름">
-          <FlowItem icon={<Camera size={17} />} text="사진 업로드" />
+          <FlowItem icon={<Camera size={17} />} text="산책 사진 입력" />
           <FlowItem icon={<Sparkles size={17} />} text="Vision 분석" />
           <FlowItem icon={<BookOpen size={17} />} text="강아지 시점 일기" />
-          <FlowItem icon={<Image size={17} />} text="크레파스 그림 생성" />
-          <FlowItem icon={<MapPinned size={17} />} text="관광데이터 추천" />
+          <FlowItem icon={<Image size={17} />} text="크레용 그림 생성" />
+          <FlowItem icon={<Database size={17} />} text="KTO 관광데이터 추천" />
         </nav>
       </aside>
 
       <section className="workspace">
         <header className="workspace-header">
           <div>
-            <p className="eyebrow">관광데이터와 연결되는 반려견 시점 AI 그림일기</p>
+            <p className="eyebrow">한국관광공사 OpenAPI와 연결하는 반려견 산책·여행 기록</p>
             <h1>{diary.title}</h1>
           </div>
           <div className="tabs" role="tablist">
@@ -111,7 +133,7 @@ function App() {
               type="button"
               onClick={() => setActiveTab('debug')}
             >
-              프롬프트
+              근거·프롬프트
             </button>
           </div>
         </header>
@@ -119,7 +141,7 @@ function App() {
         {activeTab === 'result' ? (
           <ResultView diary={diary} detectedText={detectedText} />
         ) : (
-          <DebugView />
+          <DebugView debug={debug} />
         )}
       </section>
     </main>
@@ -165,7 +187,7 @@ function ResultView({ diary, detectedText }: { diary: GenerateDiaryResponse; det
               <div className="leaf leaf-c" />
             </div>
           )}
-          <figcaption>AI 그림일기 이미지</figcaption>
+          <figcaption>AI 손글씨 그림일기</figcaption>
         </figure>
       </section>
 
@@ -184,7 +206,7 @@ function ResultView({ diary, detectedText }: { diary: GenerateDiaryResponse; det
       <section className="places-section">
         <div className="section-heading">
           <MapPinned size={19} />
-          <h2>다음 산책 추천</h2>
+          <h2>다음 산책·여행 추천</h2>
         </div>
         <div className="places-grid">
           {diary.recommendedPlaces.map((place) => (
@@ -192,7 +214,14 @@ function ResultView({ diary, detectedText }: { diary: GenerateDiaryResponse; det
               <span>{place.category ?? '추천 장소'}</span>
               <h3>{place.name}</h3>
               <p>{place.reason}</p>
+              {place.petInfo && <p className="pet-info">{place.petInfo}</p>}
               {place.address && <small>{place.address}</small>}
+              <div className="source-row">
+                <Database size={14} />
+                <strong>{place.sourceProvider ?? '한국관광공사'}</strong>
+                <em>{place.sourceApi ?? 'TourAPI'}</em>
+                {place.distanceMeters != null && <em>{place.distanceMeters.toLocaleString()}m</em>}
+              </div>
             </article>
           ))}
         </div>
@@ -201,21 +230,23 @@ function ResultView({ diary, detectedText }: { diary: GenerateDiaryResponse; det
   );
 }
 
-function DebugView() {
+function DebugView({ debug }: { debug: DiaryDebugResponse }) {
   return (
     <div className="debug-layout">
-      <DebugBlock title="사진 분석 결과" content={debugText.vision} />
-      <DebugBlock title="일기 생성 프롬프트" content={debugText.diaryPrompt} />
-      <DebugBlock title="이미지 생성 프롬프트" content={debugText.imagePrompt} />
+      <DebugBlock title="Vision 분석 JSON" content={debug.visionResult} />
+      <DebugBlock title="일기 생성 프롬프트" content={debug.diaryPrompt} />
+      <DebugBlock title="이미지 생성 프롬프트" content={debug.imagePrompt} />
+      <DebugBlock title="관광지 추천 프롬프트" content={debug.tourismPrompt} />
+      <DebugBlock title="KTO 원천 데이터" content={debug.rawTourismResponse} />
     </div>
   );
 }
 
-function DebugBlock({ title, content }: { title: string; content: string }) {
+function DebugBlock({ title, content }: { title: string; content: string | null }) {
   return (
     <section className="debug-block">
       <h2>{title}</h2>
-      <pre>{content}</pre>
+      <pre>{content ?? '아직 생성된 정보가 없습니다.'}</pre>
     </section>
   );
 }

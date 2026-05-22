@@ -6,6 +6,11 @@ public record RecommendedPlace(
         String category,
         String address,
         Double latitude,
-        Double longitude
+        Double longitude,
+        String sourceProvider,
+        String sourceApi,
+        String sourceContentId,
+        String petInfo,
+        Integer distanceMeters
 ) {
 }

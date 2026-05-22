@@ -1,0 +1,112 @@
+package com.tour_diary.infra.ai;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tour_diary.ai.text.AiTextService;
+import com.tour_diary.ai.text.DiaryTextResult;
+import com.tour_diary.diary.domain.DiaryEmotion;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Primary;
+import org.springframework.http.HttpHeaders;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+
+@Service
+@Primary
+public class GroqAiTextService implements AiTextService {
+
+    private final RestClient restClient;
+    private final ObjectMapper objectMapper;
+    private final GeminiAiTextService fallback;
+    private final String apiKey;
+    private final String model;
+
+    public GroqAiTextService(
+            GeminiAiTextService fallback,
+            @Value("${app.ai.groq-api-key:}") String apiKey,
+            @Value("${app.ai.groq-model:llama-3.1-8b-instant}") String model
+    ) {
+        this.restClient = RestClient.create();
+        this.objectMapper = new ObjectMapper();
+        this.fallback = fallback;
+        this.apiKey = apiKey;
+        this.model = model;
+    }
+
+    @Override
+    public DiaryTextResult generateDiary(String diaryPrompt) {
+        if (apiKey == null || apiKey.isBlank()) {
+            return fallback.generateDiary(diaryPrompt);
+        }
+
+        try {
+            Map<String, Object> request = Map.of(
+                    "model", model,
+                    "temperature", 0.8,
+                    "max_tokens", 700,
+                    "response_format", Map.of("type", "json_object"),
+                    "messages", List.of(
+                            Map.of(
+                                    "role", "system",
+                                    "content", "너는 반려견 시점 그림일기를 JSON으로 작성하는 AI다. 반드시 JSON만 반환한다."
+                            ),
+                            Map.of(
+                                    "role", "user",
+                                    "content", diaryPrompt + """
+
+                                            아래 JSON 스키마로만 답해.
+                                            {
+                                              "title": "일기 제목",
+                                              "content": "5문장 이내 강아지 시점 일기",
+                                              "emotion": "HAPPY|CURIOUS|EXCITED|CALM|NERVOUS"
+                                            }
+                                            """
+                            )
+                    )
+            );
+
+            String response = restClient.post()
+                    .uri("https://api.groq.com/openai/v1/chat/completions")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
+                    .body(request)
+                    .retrieve()
+                    .body(String.class);
+
+            return parseResponse(response);
+        } catch (RuntimeException | IOException ex) {
+            return fallback.generateDiary(diaryPrompt);
+        }
+    }
+
+    private DiaryTextResult parseResponse(String response) throws IOException {
+        JsonNode root = objectMapper.readTree(response);
+        String content = root.path("choices")
+                .path(0)
+                .path("message")
+                .path("content")
+                .asText();
+        JsonNode json = objectMapper.readTree(content);
+
+        return new DiaryTextResult(
+                text(json, "title", "오늘의 산책 일기"),
+                text(json, "content", "오늘 산책은 조용하고 즐거웠어. 집사야, 다음에도 같이 가자!"),
+                emotion(text(json, "emotion", "CURIOUS"))
+        );
+    }
+
+    private DiaryEmotion emotion(String value) {
+        try {
+            return DiaryEmotion.valueOf(value.toUpperCase());
+        } catch (RuntimeException ex) {
+            return DiaryEmotion.CURIOUS;
+        }
+    }
+
+    private String text(JsonNode node, String field, String fallbackValue) {
+        String value = node.path(field).asText();
+        return value == null || value.isBlank() ? fallbackValue : value;
+    }
+}
