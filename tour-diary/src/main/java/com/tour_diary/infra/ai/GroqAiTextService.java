@@ -23,44 +23,47 @@ public class GroqAiTextService implements AiTextService {
     private final GeminiAiTextService fallback;
     private final String apiKey;
     private final String model;
+    private final boolean externalApiEnabled;
 
     public GroqAiTextService(
             GeminiAiTextService fallback,
             @Value("${app.ai.groq-api-key:}") String apiKey,
-            @Value("${app.ai.groq-model:llama-3.1-8b-instant}") String model
+            @Value("${app.ai.groq-model:llama-3.1-8b-instant}") String model,
+            @Value("${app.external-api-enabled:true}") boolean externalApiEnabled
     ) {
         this.restClient = RestClient.create();
         this.objectMapper = new ObjectMapper();
         this.fallback = fallback;
         this.apiKey = apiKey;
         this.model = model;
+        this.externalApiEnabled = externalApiEnabled;
     }
 
     @Override
     public DiaryTextResult generateDiary(String diaryPrompt) {
-        if (apiKey == null || apiKey.isBlank()) {
+        if (!externalApiEnabled || apiKey == null || apiKey.isBlank()) {
             return fallback.generateDiary(diaryPrompt);
         }
 
         try {
             Map<String, Object> request = Map.of(
                     "model", model,
-                    "temperature", 0.8,
+                    "temperature", 0.75,
                     "max_tokens", 700,
                     "response_format", Map.of("type", "json_object"),
                     "messages", List.of(
                             Map.of(
                                     "role", "system",
-                                    "content", "너는 반려견 시점 그림일기를 JSON으로 작성하는 AI다. 반드시 JSON만 반환한다."
+                                    "content", "You write Korean dog-view picture diary stories as JSON only. First use photo keywords, then adapt them to the dog's profile, age, and personality. Never invent visible facts not in the prompt."
                             ),
                             Map.of(
                                     "role", "user",
                                     "content", diaryPrompt + """
 
-                                            아래 JSON 스키마로만 답해.
+                                            Return JSON only with this schema:
                                             {
-                                              "title": "일기 제목",
-                                              "content": "5문장 이내 강아지 시점 일기",
+                                              "title": "short Korean picture diary title",
+                                              "content": "5 to 7 Korean sentences written in first person as the dog. Use the extracted photo keywords and the dog's profile. Do not mention prompts or analysis.",
                                               "emotion": "HAPPY|CURIOUS|EXCITED|CALM|NERVOUS"
                                             }
                                             """
@@ -91,8 +94,8 @@ public class GroqAiTextService implements AiTextService {
         JsonNode json = objectMapper.readTree(content);
 
         return new DiaryTextResult(
-                text(json, "title", "오늘의 산책 일기"),
-                text(json, "content", "오늘 산책은 조용하고 즐거웠어. 집사야, 다음에도 같이 가자!"),
+                text(json, "title", "오늘의 산책 그림일기"),
+                text(json, "content", "오늘 나는 보호자와 사진 속 산책길을 걸었다. 발바닥에 닿는 바닥 느낌과 코끝 냄새가 오래 남았다. 나는 보호자를 올려다보며 이 장면을 꼭 기억하고 싶었다."),
                 emotion(text(json, "emotion", "CURIOUS"))
         );
     }

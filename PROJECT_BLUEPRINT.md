@@ -1,264 +1,103 @@
 # Paws-on-Keyboard Project Blueprint
 
-## 결론
+## Product Intent
 
-현재 구조로 끝까지 진행한다. 단, 이 프로젝트의 중심은 단순 AI 일기장이 아니라 `관광데이터와 연결되는 반려견 시점 AI 그림일기`다.
+Paws-on-Keyboard는 보호자가 찍은 강아지 사진을 단순히 필터 처리하지 않고, 사진 속 상황을 읽어 강아지가 직접 기억한 것 같은 그림일기와 여행/산책 추천으로 바꾸는 서비스다.
 
-따라서 모든 구현 우선순위는 아래 핵심 플로우를 기준으로 판단한다.
+중요한 차별점은 다음과 같다.
 
-```text
-산책 사진
--> Vision 분석
--> 강아지 프로필 + 산책 정보 + 사진 분석 조합
--> 강아지 시점 일기 생성
--> 강아지가 그린 듯한 크레파스 그림일기 생성
--> 한국관광공사 관광데이터 추천
--> 일기장 저장/조회
-```
+- 사진을 그대로 흐리게 만들거나 스케치 필터만 씌우지 않는다.
+- 초기 설정의 강아지 성격, 외모, 보호자와의 관계를 매번 생성에 반영한다.
+- 산책 사진에서 보이는 장소, 분위기, 행동 단서를 일기와 그림 생성 근거로 쓴다.
+- 결과는 우리집 추억에 저장되고, 커뮤니티에 공유할 수 있다.
 
-## Repository Structure
+## Target Flow
 
 ```text
-Paws-on-Keyboard/
-├─ tour-diary/        # Spring Boot backend
-├─ tour-diary-web/    # React frontend
-└─ PROJECT_BLUEPRINT.md
+AuthScreen
+-> Settings: 보호자/강아지 고정 정보 입력
+-> Create: 오늘 사진 업로드, 장소/날씨/활동/상황 입력
+-> Generation: 사진 분석, 산책 기록 저장, 그림일기 생성
+-> Result: 그림과 강아지 1인칭 일기, 추천 장소 표시
+-> Memories: 저장된 우리집 추억 검색/재열람
+-> Community: 그림일기 공유, 좋아요, 댓글
+-> Profile: 내 강아지 정보, 게시물, 추억 요약
 ```
 
-프론트와 백엔드는 분리한다. 프롬프톤 MVP에서는 개발 속도, API 계약, 발표 화면 구성을 위해 이 방식이 가장 깔끔하다.
+## Required User Data
 
-## Backend Architecture
+초기 설정에서 받는 값:
 
-백엔드는 Spring Boot + MongoDB 기준으로 간다.
+- 보호자 사진
+- 보호자 이름
+- 보호자 성격/특징
+- 강아지가 보호자를 부르는 호칭
+- 보호자 애칭
+- 강아지와 보호자의 관계 설명
+- 강아지 이름
+- 강아지 나이
+- 견종
+- 강아지 성격
+- 강아지 외모
+- 강아지 사진
+- 좋아하는 것
+- 싫어하는 것
+
+오늘 생성에서 받는 값:
+
+- 산책 또는 일상 사진
+- 장소
+- 날씨
+- 활동
+- 기억하고 싶은 상황
+
+## Generation Pipeline
+
+그림일기 생성 순서는 고정한다.
 
 ```text
-com.tour_diary
-├─ dog                # 강아지 프로필
-├─ walk               # 산책 기록, 원본 사진, 위치, 날씨
-├─ diary              # 그림일기 생성/저장/조회
-├─ ai                 # AI 포트
-│  ├─ vision
-│  ├─ text
-│  └─ image
-├─ prompt             # 프롬프트 조립
-├─ tourism            # 관광 추천 포트
-└─ infra              # 외부 API 구현체
-   ├─ ai
-   └─ tourism
+1. 유저가 사진을 올린다.
+2. 해당 사진에서 실제 키워드를 추출한다.
+   - 강아지 외모, 색감, 자세, 장소 유형, 바닥, 배경, 리드줄/보호자 단서
+3. 초기 설정의 강아지 성격, 나이, 좋아하는 것, 보호자 호칭에 맞게 키워드를 이야기로 재구성한다.
+4. 재구성한 이야기로 그림을 그리고 일기를 쓴다.
+5. 그림은 실제 사진과 장면/색감/강아지 정체성이 비슷해야 하며, 강아지 시점의 낮은 눈높이와 감각이 드러나야 한다.
 ```
 
-### 중요한 설계 원칙
+## Generation Rules
 
-1. `DiaryGenerationService`가 MVP 생성 플로우의 오케스트레이터다.
-2. Controller는 요청/응답만 담당한다.
-3. AI/Vision/KTO 연동은 인터페이스를 먼저 두고 `infra` 구현체로 교체한다.
-4. 프롬프트는 `DiaryPromptBuilder`, `ImagePromptBuilder`에 모은다.
-5. `diaryPrompt`, `imagePrompt`는 반드시 저장한다.
-6. 이미지 생성은 부가 기능이 아니라 핵심 기능이다.
+- 강아지 1인칭으로 쓴다.
+- 사진에 없는 유명 장소, 계절, 소품, 다른 동물, 다른 사람을 만들지 않는다.
+- 사진의 실제 단서가 부족하면 사용자가 입력한 선택 정보와 고정 프로필만 사용한다.
+- 강아지 외모와 성격은 초기 설정을 우선한다.
+- 보호자와의 관계는 일기 말투에 반영한다.
+- 그림 안에는 글자, 말풍선, 날짜 텍스트를 넣지 않는다.
+- 그림은 삐뚤빼뚤 귀엽지만 저장하고 공유하고 싶을 만큼 예쁘게 만든다.
+- 그림체는 파스텔 크레용/색연필 느낌이며, 재능 있는 10살 아이가 정성껏 그린 듯한 수준을 목표로 한다.
+- fallback도 업로드 사진의 색감과 장면 단서를 샘플링해 새 그림을 만들며, 사진 자체를 흐리게 보여주지 않는다.
 
-## Backend Generation Flow
+## Current Implementation Notes
 
-```text
-DiaryController
--> DiaryGenerationService
-   -> DogProfileRepository
-   -> WalkRecordRepository
-   -> VisionService
-   -> DiaryPromptBuilder
-   -> AiTextService
-   -> ImagePromptBuilder
-   -> AiImageService
-   -> TourismRecommendationService
-   -> DiaryRepository
+Frontend:
+
+- `tour-diary-web/src/App.tsx`가 전체 MVP 화면을 담당한다.
+- 로그인 사용자별로 프로필과 추억 localStorage 키를 분리한다.
+- 백엔드 업로드, 산책 기록, 일기 생성 API를 먼저 시도한다.
+- 실패하면 로컬 SVG 그림일기와 로컬 일기 문장으로 fallback한다.
+
+Backend:
+
+- `tour-diary` Spring Boot 앱이 인증, 프로필, 업로드, 산책 기록, 일기 생성, 커뮤니티 API를 제공한다.
+- 외부 AI/Tourism API 설정이 없거나 실패해도 fallback 경로가 있어 MVP가 멈추지 않는다.
+
+## Verification
+
+```powershell
+cd tour-diary-web
+npm.cmd run build
 ```
 
-## Core API Contract
-
-### Generate Diary
-
-```http
-POST /api/diaries/generate
-Content-Type: application/json
+```powershell
+cd tour-diary
+.\gradlew.bat test
 ```
-
-```json
-{
-  "dogId": "1",
-  "walkRecordId": "3"
-}
-```
-
-```json
-{
-  "diaryId": "10",
-  "originalImageUrl": "/uploads/walk-3.jpg",
-  "generatedImageUrl": "/uploads/generated/diary-10.png",
-  "title": "보리의 낙엽 괴물 탐험",
-  "content": "오늘 나는 바삭바삭한 낙엽 괴물을 만났다...",
-  "detectedObjects": ["강아지", "낙엽", "벤치", "산책로"],
-  "recommendedPlaces": [
-    {
-      "name": "서울숲",
-      "reason": "산책로가 넓고 반려견과 걷기 좋아요.",
-      "category": "반려견 동반 산책지",
-      "address": "서울특별시 성동구",
-      "latitude": 37.5444,
-      "longitude": 127.0374
-    }
-  ]
-}
-```
-
-### Diary Debug
-
-발표와 디버깅을 위해 추가해야 하는 API다.
-
-```http
-GET /api/diaries/{diaryId}/debug
-```
-
-응답에는 아래 항목을 포함한다.
-
-```text
-visionResult
-diaryPrompt
-imagePrompt
-tourismPrompt
-rawTourismResponse
-```
-
-## MongoDB Collections
-
-### dogs
-
-```text
-id
-name
-personality
-favoriteThings
-speakingStyle
-age
-```
-
-### walk_records
-
-```text
-id
-dogId
-originalImageUrl
-latitude
-longitude
-address
-weather
-temperature
-walkedAt
-```
-
-### diaries
-
-```text
-id
-walkRecordId
-dogId
-title
-content
-emotion
-detectedObjects
-diaryPrompt
-imagePrompt
-generatedImageUrl
-recommendedPlaces
-createdAt
-```
-
-나중에 Vision 분석 원문을 저장하려면 아래 필드를 추가한다.
-
-```text
-visionAnalysis
-tourismPrompt
-rawTourismResponse
-```
-
-## Frontend Architecture
-
-프론트는 `tour-diary-web`에서 React + Vite + TypeScript로 간다.
-
-```text
-tour-diary-web/src
-├─ api.ts             # 백엔드 API 클라이언트
-├─ App.tsx            # MVP 화면
-├─ demoData.ts        # 백엔드 미완성 구간용 데모 데이터
-├─ main.tsx
-└─ styles.css
-```
-
-초기 MVP 화면은 아래 흐름을 우선한다.
-
-```text
-강아지/산책 기록 선택
--> 그림일기 생성
--> 원본 사진과 AI 그림 나란히 표시
--> 오늘의 일기 표시
--> 추천 관광지 표시
--> 프롬프트 디버그 탭 표시
-```
-
-백엔드 CRUD와 이미지 업로드가 붙으면 프론트는 아래 구조로 확장한다.
-
-```text
-src
-├─ api
-├─ components
-├─ pages
-│  ├─ DogProfilePage
-│  ├─ WalkUploadPage
-│  ├─ DiaryGeneratePage
-│  ├─ DiaryDetailPage
-│  └─ DiaryListPage
-└─ styles
-```
-
-## Implementation Order
-
-### Phase 1: Local MVP Skeleton
-
-1. Dog CRUD
-2. WalkRecord CRUD
-3. 이미지 업로드
-4. `/api/diaries/generate`
-5. 프론트 데모 화면
-
-### Phase 2: AI Pipeline
-
-1. Vision API 실제 연동
-2. 일기 생성 API 실제 연동
-3. 이미지 생성 API 또는 로컬 이미지 서버 연동
-4. 생성 이미지 파일 저장
-5. 프롬프트 디버그 API
-
-### Phase 3: Tourism Data
-
-1. Kakao 위치/주소 처리
-2. KTO TourAPI 연동
-3. 두루누비 API 연동
-4. 무장애 관광정보 API 연동
-5. AI 추천 이유 생성
-
-### Phase 4: Product Finish
-
-1. 일기장 목록/상세
-2. 모바일 화면 정리
-3. 발표용 프롬프트 설계 화면
-4. 예외 처리와 로딩 상태
-5. 시연용 샘플 데이터
-
-## Do Not Change Without Reason
-
-아래 결정은 프로젝트 끝까지 유지한다.
-
-1. 프론트/백엔드는 분리한다.
-2. AI 그림 생성은 핵심 기능이다.
-3. 생성 API는 `POST /api/diaries/generate` 하나로 묶는다.
-4. 외부 API는 `infra` 구현체로 격리한다.
-5. 프롬프트는 저장하고 화면에서 보여줄 수 있게 한다.
-6. MongoDB 문서 모델로 빠르게 MVP를 완성한다.

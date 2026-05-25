@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = "diaries")
 public record Diary(
         @Id String id,
+        String userId,
         String walkRecordId,
         String dogId,
         String title,

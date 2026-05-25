@@ -32,10 +32,10 @@ public class DemoDataSeeder implements CommandLineRunner {
             if (!dogProfileRepository.existsById("1")) {
                 dogProfileRepository.save(new DogProfile(
                         "1",
-                        "Bori",
-                        "Curious, gentle, and easily excited by new smells",
-                        List.of("parks", "snacks", "fallen leaves"),
-                        "Warm and playful first-person dog voice",
+                        "사진 속 강아지",
+                        "사진 속 상황을 궁금해하고 보호자를 자주 올려다보는 성격",
+                        List.of("보호자와 산책하기", "사진 속 장소 냄새 맡기"),
+                        "사진에 없는 사물이나 색을 지어내지 않는 강아지 1인칭 말투",
                         4
                 ));
             }
@@ -47,8 +47,8 @@ public class DemoDataSeeder implements CommandLineRunner {
                         null,
                         37.5444,
                         127.0374,
-                        "Seoul Forest, Seongdong-gu, Seoul",
-                        "clear",
+                        "사진 속 산책 장소",
+                        "사진 속 날씨",
                         19.5,
                         Instant.now()
                 ));

@@ -8,51 +8,72 @@ import org.springframework.stereotype.Component;
 @Component
 public class ImagePromptBuilder {
 
-    public String build(DogProfile dog, WalkRecord walk, VisionAnalysisResult vision, String diaryContent) {
+    public String build(DogProfile dog, WalkRecord walk, VisionAnalysisResult vision, String reconstructedStory) {
         return """
-                Create only the upper drawing area of a Korean elementary-school picture diary.
-                Do not draw any text, letters, handwriting, labels, title, date, signature, watermark, or notebook lines.
-                The backend will add the Korean diary text separately.
+                Create one beautiful hand-drawn illustration for a dog picture diary.
 
-                Diary content:
+                Pipeline contract:
+                The user uploaded a real photo.
+                The photo was analyzed into keywords.
+                Those keywords were reconstructed into the dog-view story below.
+                Draw the scene from that reconstructed story while preserving the real photo keywords and dog identity.
+
+                Reconstructed dog-view story:
                 "%s"
 
-                Scene:
-                The dog named %s is walking at %s.
-                Photo analysis says the place is %s with this mood: %s.
-                Important objects are: %s.
-                Diary hints are: %s.
+                Dog identity lock:
+                Dog name: %s
+                Age/personality/profile: %s
+                Speaking style and owner relationship: %s
+                Photo-derived dog appearance: %s
+                Photo-derived colors: %s
+                Keep the user's dog recognizable: coat colors, markings, breed impression, size, ears, face shape, tail, collar, and leash if visible.
+                If the dog/profile/photo says black-and-white, white, cream, dark, or brown fur, preserve that fur family.
+                Never transfer a bright background color onto the dog's fur.
 
-                Drawing style:
-                - very naive childlike crayon and colored-pencil drawing
-                - simple flat shapes, uneven outlines, playful mistakes, imperfect proportions
-                - cute dog-centered scene from the dog's point of view
-                - pastel colors with a few bright crayon accents
-                - white paper background
-                - slightly messy but wholesome elementary-school drawing feeling
-                - looks like a young child drew it, not a professional illustrator
+                Photo keywords that must guide the drawing:
+                Scene summary: %s
+                Place type: %s
+                Weather/location input: %s / %s
+                Dog action: %s
+                Dog viewpoint: %s
+                Owner clue: %s
+                Mood: %s
+                Important objects: %s
+                Drawing keywords: %s
+                Diary hints: %s
 
-                Composition:
-                Place the dog near the center, looking curious.
-                Add small cute sticker-like elements around the scene: %s.
-                Make it suitable for a pet diary album and a tourism contest demo.
+                Required visual direction:
+                - The drawing must feel similar to the real uploaded photo in scene, dog, color mood, and composition clues.
+                - It is not a photo filter, not posterized, not a copied photo, and not photorealistic.
+                - Draw it as the dog remembers the moment: low viewpoint, paws/ground feeling, leash/collar, smell-focused details, and looking toward the owner if owner clues exist.
+                - Style is polished pastel crayon and colored-pencil illustration.
+                - Cute, slightly crooked, warm, and childlike, but still pretty enough for a user to want to save and share.
+                - Think "a talented 10-year-old carefully drew a beloved dog", not toddler scribbles.
+                - Keep anatomy readable: clear dog face, eyes, ears, body, paws, and tail.
+                - Use only objects and background elements visible in the reference photo or listed in the photo keywords.
+                - Do not add text, letters, speech bubbles, date, watermark, diary page, notebook paper, UI, stamps, or frames inside the image.
 
-                Avoid:
-                - photorealistic rendering
-                - any text, letters, fake letters, signature, or watermark
-                - clean digital illustration
-                - polished adult drawing
-                - comic panels
-                - realistic dog anatomy
+                Negative constraints:
+                wrong dog, wrong fur color, wrong breed, generic yellow dog, unrelated park, invented flowers, invented bench, invented season, extra limbs, human-like dog, scary face, messy low-quality scribble, text, watermark, diary template.
                 """.formatted(
-                diaryContent,
+                reconstructedStory,
                 dog.name(),
-                walk.address(),
+                dog.personality(),
+                dog.speakingStyle(),
+                vision.dogAppearance(),
+                vision.colors(),
+                vision.sceneSummary(),
                 vision.placeType(),
+                walk.weather(),
+                walk.address(),
+                vision.dogAction(),
+                vision.dogViewpoint(),
+                vision.ownerClue(),
                 vision.mood(),
                 vision.objects(),
-                vision.diaryHints(),
-                vision.stickerCandidates()
+                vision.drawingKeywords(),
+                vision.diaryHints()
         );
     }
 }

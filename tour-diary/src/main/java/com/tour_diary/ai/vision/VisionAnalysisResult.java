@@ -9,6 +9,12 @@ public record VisionAnalysisResult(
         String mood,
         String placeType,
         List<String> stickerCandidates,
-        List<String> diaryHints
+        List<String> diaryHints,
+        String sceneSummary,
+        String dogAppearance,
+        String ownerClue,
+        String dogAction,
+        String dogViewpoint,
+        List<String> drawingKeywords
 ) {
 }

@@ -19,13 +19,13 @@ public class DotenvEnvironmentPostProcessor implements EnvironmentPostProcessor,
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
         Map<String, Object> values = loadLocalEnv();
         if (!values.isEmpty()) {
-            environment.getPropertySources().addFirst(new MapPropertySource("localDotenv", values));
+            environment.getPropertySources().addLast(new MapPropertySource("localDotenv", values));
         }
     }
 
     @Override
     public int getOrder() {
-        return Ordered.HIGHEST_PRECEDENCE;
+        return Ordered.LOWEST_PRECEDENCE;
     }
 
     private Map<String, Object> loadLocalEnv() {

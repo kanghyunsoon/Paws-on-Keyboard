@@ -1,26 +1,16 @@
-# 댕댕이 투어 일기 MVP 아키텍처
+# Tour Diary Backend Architecture
 
-## 핵심 정의
+## Purpose
 
-댕댕이 투어 일기는 산책 사진을 기반으로 AI가 강아지 시점의 일기와 크레파스 그림일기를 생성하고, 한국관광공사 공공데이터를 활용해 다음 반려견 동반 산책지와 무장애 관광 코스를 추천하는 AI 관광 기록 서비스다.
+`tour-diary` is the Spring Boot backend for Paws-on-Keyboard. It generates a pet diary from a walk record, creates or references a diary-style image, recommends nearby pet-friendly places, and stores the result for retrieval and debugging.
 
-## 1차 MVP 흐름
-
-```text
-사진 업로드
--> Vision 분석
--> 강아지 프로필 + 날씨 + 위치 + 사진 분석 결과 조합
--> 강아지 시점 일기 생성
--> 일기 내용 기반 AI 그림일기 생성
--> KTO 관광데이터 기반 장소 추천
--> 일기장 저장
-```
-
-## Spring 계층
+## Generation Flow
 
 ```text
 DiaryController
 -> DiaryGenerationService
+   -> DogProfileRepository
+   -> WalkRecordRepository
    -> VisionService
    -> DiaryPromptBuilder
    -> AiTextService
@@ -30,7 +20,7 @@ DiaryController
    -> DiaryRepository
 ```
 
-## 패키지 구조
+## Package Roles
 
 ```text
 com.tour_diary
@@ -53,49 +43,64 @@ com.tour_diary
 ├─ tourism
 └─ infra
    ├─ ai
+   ├─ config
    └─ tourism
 ```
 
-`ai`, `tourism` 패키지는 포트다. 실제 OpenAI, 로컬 이미지 모델, 한국관광공사 API 연동은 `infra` 구현체로 교체한다.
+The `ai` and `tourism` packages define ports. Implementations that call external providers live under `infra`.
 
-## 대표 API
+## External Provider Strategy
+
+Primary implementations call external services when configured:
+
+- `GeminiVisionService`
+- `GroqAiTextService`
+- `GeminiAiTextService`
+- `CloudflareAiImageService`
+- `KtoTourismRecommendationService`
+
+Fallback implementations keep the MVP usable without API keys:
+
+- `FakeVisionService`
+- `FakeAiTextService`
+- `FakeAiImageService`
+- `FakeTourismRecommendationService`
+
+Set `APP_EXTERNAL_API_ENABLED=false` to force fallback mode even when `.env` contains real API keys.
+
+## Main Endpoints
+
+### Generate Diary
 
 ```http
 POST /api/diaries/generate
 Content-Type: application/json
+```
 
+```json
 {
   "dogId": "1",
   "walkRecordId": "3"
 }
 ```
 
-응답:
+### Get Diary
 
-```json
-{
-  "diaryId": "10",
-  "originalImageUrl": "/uploads/walk-3.jpg",
-  "generatedImageUrl": "/uploads/generated/diary-10.png",
-  "title": "보리의 낙엽 괴물 탐험",
-  "content": "오늘 나는 바삭바삭한 낙엽 괴물을 만났다...",
-  "detectedObjects": ["강아지", "낙엽", "벤치", "산책로"],
-  "recommendedPlaces": [
-    {
-      "name": "서울숲",
-      "reason": "산책로가 넓고 반려견과 걷기 좋아요.",
-      "category": "반려견 동반 산책지",
-      "address": "서울특별시 성동구",
-      "latitude": 37.5444,
-      "longitude": 127.0374
-    }
-  ]
-}
+```http
+GET /api/diaries/{diaryId}
 ```
 
-## MongoDB 컬렉션
+### Get Debug Data
 
-### dogs
+```http
+GET /api/diaries/{diaryId}/debug
+```
+
+The debug response contains the vision result, diary prompt, image prompt, tourism prompt, and raw tourism candidate data.
+
+## Data Model
+
+### DogProfile
 
 ```text
 id
@@ -106,7 +111,7 @@ speakingStyle
 age
 ```
 
-### walk_records
+### WalkRecord
 
 ```text
 id
@@ -120,7 +125,7 @@ temperature
 walkedAt
 ```
 
-### diaries
+### Diary
 
 ```text
 id
@@ -130,22 +135,23 @@ title
 content
 emotion
 detectedObjects
+visionAnalysis
 diaryPrompt
 imagePrompt
+tourismPrompt
+rawTourismResponse
 generatedImageUrl
 recommendedPlaces
 createdAt
 ```
 
-`diaryPrompt`와 `imagePrompt`는 발표/디버그 화면에서 프롬프트 설계 과정을 보여주기 위해 반드시 저장한다.
+## Local Commands
 
-## 구현 우선순위
+```powershell
+.\gradlew.bat test
+```
 
-1. Dog CRUD
-2. WalkRecord CRUD + 이미지 업로드
-3. Vision 분석 결과 저장
-4. 일기 생성
-5. AI 그림 생성
-6. KTO 장소 추천
-7. 일기장 저장/조회
-8. 프롬프트 디버그 화면
+```powershell
+$env:APP_EXTERNAL_API_ENABLED='false'
+.\gradlew.bat bootRun
+```

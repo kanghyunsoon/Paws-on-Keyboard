@@ -19,32 +19,33 @@ public class FakeTourismRecommendationService implements TourismRecommendationSe
             VisionAnalysisResult vision,
             DiaryEmotion emotion
     ) {
+        String location = walk.address() == null || walk.address().isBlank() ? "입력한 장소" : walk.address();
         return List.of(
                 new RecommendedPlace(
-                        "서울숲",
-                        dog.name() + "가 오늘처럼 조용한 공원 산책을 좋아해서, 넓은 산책로와 자연 분위기가 잘 맞는 다음 산책지예요.",
+                        location + " 근처 산책 코스",
+                        dog.name() + "가 오늘처럼 보호자와 천천히 걷고 냄새 맡기 좋은 다음 산책 후보입니다.",
                         "반려견 동반 산책지",
-                        "서울특별시 성동구 뚝섬로 273",
-                        37.5444,
-                        127.0374,
-                        "한국관광공사",
-                        "locationBasedList2 + detailPetTour2",
-                        "126508",
-                        "야외 산책 중심으로 이용하기 좋고, 방문 전 현장별 반려동물 동반 가능 구역 확인이 필요합니다.",
-                        850
+                        location,
+                        walk.latitude(),
+                        walk.longitude(),
+                        "사용자 입력 기반 추천",
+                        "fallback",
+                        null,
+                        "실제 추천은 위치 기반 관광 API 연결 후 반려동물 동반 가능 여부를 함께 확인합니다.",
+                        null
                 ),
                 new RecommendedPlace(
-                        "응봉산 팔각정",
-                        "사진에서 보인 가을 분위기와 잘 어울리고, 짧은 산책 후 전망을 볼 수 있어 호기심 많은 강아지에게 좋은 후보예요.",
-                        "근교 산책 관광지",
-                        "서울특별시 성동구 금호동4가",
-                        37.5481,
-                        127.0293,
-                        "한국관광공사",
-                        "locationBasedList2",
-                        "127480",
-                        "계단과 경사가 있어 노령견은 이동 부담을 확인해야 합니다.",
-                        2100
+                        location + " 주변 쉬어가기 좋은 곳",
+                        "오늘 산책 분위기와 이어서 보호자와 잠깐 쉬기 좋은 후보입니다.",
+                        "근처 휴식 장소",
+                        location,
+                        walk.latitude(),
+                        walk.longitude(),
+                        "사용자 입력 기반 추천",
+                        "fallback",
+                        null,
+                        "방문 전 반려견 출입 가능 여부와 리드줄 규정을 확인해야 합니다.",
+                        null
                 )
         );
     }

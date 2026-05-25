@@ -20,22 +20,25 @@ public class GeminiAiTextService implements AiTextService {
     private final FakeAiTextService fallback;
     private final String apiKey;
     private final String model;
+    private final boolean externalApiEnabled;
 
     public GeminiAiTextService(
             FakeAiTextService fallback,
             @Value("${app.ai.gemini-api-key:}") String apiKey,
-            @Value("${app.ai.gemini-model:gemini-2.5-flash}") String model
+            @Value("${app.ai.gemini-model:gemini-2.5-flash}") String model,
+            @Value("${app.external-api-enabled:true}") boolean externalApiEnabled
     ) {
         this.restClient = RestClient.create();
         this.objectMapper = new ObjectMapper();
         this.fallback = fallback;
         this.apiKey = apiKey;
         this.model = model;
+        this.externalApiEnabled = externalApiEnabled;
     }
 
     @Override
     public DiaryTextResult generateDiary(String diaryPrompt) {
-        if (apiKey == null || apiKey.isBlank()) {
+        if (!externalApiEnabled || apiKey == null || apiKey.isBlank()) {
             return fallback.generateDiary(diaryPrompt);
         }
 
@@ -44,17 +47,17 @@ public class GeminiAiTextService implements AiTextService {
                     "contents", List.of(Map.of(
                             "parts", List.of(Map.of("text", diaryPrompt + """
 
-                                    아래 JSON 스키마로만 답해.
+                                    Return JSON only with this schema:
                                     {
-                                      "title": "일기 제목",
-                                      "content": "5문장 이내 강아지 시점 일기",
+                                      "title": "short Korean picture diary title",
+                                      "content": "5 to 7 Korean sentences written in first person as the dog. Use the extracted photo keywords and the dog's profile. Do not mention prompts or analysis.",
                                       "emotion": "HAPPY|CURIOUS|EXCITED|CALM|NERVOUS"
                                     }
                                     """))
                     )),
                     "generationConfig", Map.of(
                             "responseMimeType", "application/json",
-                            "temperature", 0.8
+                            "temperature", 0.75
                     )
             );
 
@@ -84,8 +87,8 @@ public class GeminiAiTextService implements AiTextService {
         JsonNode json = objectMapper.readTree(content);
 
         return new DiaryTextResult(
-                text(json, "title", "오늘의 산책 일기"),
-                text(json, "content", "오늘 산책은 조용하고 즐거웠어. 집사야, 다음에도 같이 가자!"),
+                text(json, "title", "오늘의 산책 그림일기"),
+                text(json, "content", "오늘 나는 보호자와 사진 속 산책길을 걸었다. 발바닥에 닿는 바닥 느낌과 코끝 냄새가 오래 남았다. 나는 보호자를 올려다보며 이 장면을 꼭 기억하고 싶었다."),
                 emotion(text(json, "emotion", "CURIOUS"))
         );
     }
