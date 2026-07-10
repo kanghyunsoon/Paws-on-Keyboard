@@ -16,7 +16,7 @@
 ```
 ## 실제 화면예시
 <img src="img/render.png" alt="실제 가동 화면" width="50%">
-<img src="img/render.png" alt="recommend" width="50%">
+<img src="img/recommend.png" alt="실제 가동 화면" width="50%">
 
 ## 현재 구현
 
