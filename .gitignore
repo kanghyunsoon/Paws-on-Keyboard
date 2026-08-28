@@ -1,23 +1,6 @@
-**/.env
-**/.env.*
-!**/.env.example
-
-# Dependencies
-**/node_modules/
-
-# Build outputs
-**/dist/
-**/build/
-**/.gradle/
-**/out/
-**/bin/
-**/*.tsbuildinfo
-
-# Runtime artifacts
-**/*.log
-**/uploads/
-
-# IDE metadata
+.env
+.env.*
+*.log
 .idea/
-*.iml
 .vscode/
+*.iml

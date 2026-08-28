@@ -1,83 +1,151 @@
-# Paws-on-Keyboard
+# Paws on Keyboard
 
-강아지 산책 사진을 바탕으로, 단순 사진 필터가 아니라 **강아지가 직접 기억한 것 같은 그림일기**를 만드는 반려견 추억 서비스입니다.
-<img src="img/title.png" alt="타이틀" width="50%">
+<p align="center">
+  <img src="img/title.png" width="620" alt="Paws on Keyboard - Tour Diary" />
+</p>
 
-## 핵심 흐름
+<p align="center">
+  산책 사진 한 장을 강아지 시점의 그림일기와 다음 산책 후보로 바꾸는 AI 에이전트 서비스
+</p>
 
-```text
-로그인/회원가입
--> 초기 설정: 보호자 정보, 강아지 정보, 보호자/강아지 사진 저장
--> 오늘 찍은 산책 사진 업로드
--> 장소, 날씨, 활동, 기억하고 싶은 상황 선택 입력
--> 사진 단서 + 강아지 고정 프로필 + 선택 입력으로 그림일기 생성
--> 우리집 추억에 저장
--> 우리 강아지 자랑하기 게시판에 공유
-```
-## 실제 화면예시
-<img src="img/render.png" alt="실제 가동 화면" width="50%">
-<img src="img/recommend.png" alt="실제 가동 화면" width="50%">
+<p align="center">
+  <a href="docs/portfolio-ai-orchestration.md">AI 오케스트레이션 기록</a> ·
+  <a href="https://github.com/kanghyunsoon/HF_ProxyAPI">Hugging Face 프록시</a>
+</p>
 
-## 현재 구현
+> 2026 관광데이터 활용 공모전 · 생성형 AI 활용 관광 프롬프트 부문
+>
+> 팀 프로젝트 · 강형순 담당: **AI 에이전트 오케스트레이션, 외부 API 파이프라인, 프록시 서버 배포, 프롬프트 설계**
 
-### Frontend
+## 이 저장소가 담는 것
 
-경로: `tour-diary-web`
+서비스는 Ennoia 에이전트 툴에서 구현했다. Ennoia가 완성된 애플리케이션 코드를 내려받는 기능을 제공하지 않아, 이 저장소는 일반적인 원본 소스 저장소가 아니다.
 
-- React/Vite 앱입니다.
-- 로그인/회원가입, 초기 설정, 오늘 사진 생성, 추억 목록, 커뮤니티, 내 정보 화면이 있습니다.
-- 백엔드 API를 우선 호출하고, 백엔드가 꺼져 있거나 외부 AI가 실패하면 로컬 SVG 그림일기 fallback을 사용합니다.
-- 화면 문구는 정상 한국어로 정리되어 있습니다.
-- 프로필과 추억은 로그인 사용자별 localStorage 키로 분리됩니다.
-- 결과 화면의 그림은 `.drawing-image` 스타일로 컨테이너 안에 맞춰 표시합니다. 이전처럼 이미지가 칸 밖으로 잘리거나 삐져나오는 문제를 줄였습니다.
-- 생성 이미지 URL은 `/uploads/...` 상대경로를 `http://localhost:8080/uploads/...`로 정규화해서 로드합니다. 이미지 로드가 실패하면 빈칸으로 두지 않고 프론트 로컬 fallback 그림으로 자동 전환합니다.
-- 일기 본문은 일반 타이핑 텍스트가 아니라 글자별 회전/높낮이 차이를 주는 손글씨 느낌 렌더링을 사용합니다.
-- 2026-05-25 수정: 그림일기 생성 요청에 초기 설정의 `dogPhotoUrl`을 포함합니다. 이전에는 강아지 프로필 사진을 저장해도 생성 요청에는 빠져 있어서 산책 사진만 기준으로 그림이 만들어질 수 있었습니다.
-- 2026-05-25 최종 수정: 프론트 생성 흐름에서 백엔드 실패를 `catch(() => null)`로 삼키고 저품질 로컬 SVG 그림일기를 보여주던 경로를 제거했습니다. 이제 강아지 사진/산책 사진이 서버에 업로드되지 않았거나 백엔드 생성이 실패하면 실패로 알리고, 사용자에게 도형 fallback 그림을 저장하지 않습니다.
+대신 면접에서 확인할 수 있도록 다음 자료를 남겼다.
 
-### Backend
+- 실제 서비스 화면과 생성 결과
+- `Vision → Planner → Writer → Painter` 에이전트 전달 구조
+- 한국관광공사 데이터 4종을 추천 근거로 연결한 방식
+- Ennoia와 Hugging Face 사이의 규격 차이를 해결한 프록시 코드
 
-경로: `tour-diary`
+![담당 범위 수치](docs/assets/portfolio/key-metrics.svg)
 
-- Spring Boot 앱입니다.
-- 인증, 프로필, 이미지 업로드, 산책 기록, 일기 생성, 커뮤니티, 진단 API 구조가 들어 있습니다.
-- 이미지 생성은 외부 API 설정이 있으면 외부 모델을 사용하고, 실패 시 로컬 fallback으로 이어집니다.
-- 로컬 이미지 fallback은 사진을 블러/픽셀화하지 않습니다. 사진 색과 장면 단서를 샘플링해 새 그림을 그립니다.
-- 2026-05-25 변경: 로컬 fallback 구도를 큰 정면 강아지 캐릭터에서 강아지 시점 산책 장면으로 바꿨습니다. 산책로, 보호자 방향 하반신 단서, 리드줄, 강아지 발, 사진 기반 털색을 함께 보여줍니다.
-- 2026-05-25 수정: 백엔드 이미지 생성은 산책 사진을 상황/배경 기준으로 쓰고, 초기 설정 강아지 사진을 정체성/털색/견종 기준으로 씁니다. 로컬 fallback은 강아지 사진을 우선 샘플링해 팔레트를 잡고, Gemini 이미지 생성은 산책 사진과 강아지 사진을 둘 다 입력으로 보냅니다.
-- 2026-05-25 수정: Gemini/Hugging Face image-to-image가 실패해도 바로 저품질 Java 도형 fallback으로 가지 않고 Cloudflare text-to-image를 먼저 시도합니다. Cloudflare에는 긴 전체 프롬프트 대신 견종/털색/장면만 추린 짧은 전용 프롬프트를 보냅니다.
-- 2026-05-25 수정: Cloudflare 토큰/크레딧이 없거나 실패해도 테스트가 가능하도록 대체 이미지 생성 경로를 추가했습니다. 순서는 `Gemini/Hugging Face image-to-image -> AI_IMAGE_GENERATE_URL 로컬/사설 이미지 서버 -> Pollinations 공개 no-token fallback -> Cloudflare text-to-image -> 최후방 로컬 PNG`입니다. 기본적으로 공개 fallback은 켜져 있고 `PUBLIC_IMAGE_FALLBACK_ENABLED=false`로 끌 수 있습니다.
-- 2026-05-25 수정: 공개/Cloudflare 텍스트 이미지 생성 프롬프트를 성인용 고퀄 일러스트에서 초등학생 그림일기 스타일로 낮췄습니다. 핵심은 `full-color crayon/colored-pencil`, 거친 크레파스 선, 종이 질감, 단순 구도이며, 흑백 연필화/포토리얼/전문 일러스트는 금지합니다.
-- 2026-05-25 수정: `FakeAiImageService`가 존재하지 않는 이미지 URL만 반환하던 버그를 고쳤습니다. 이제 실제 PNG 파일을 생성해 저장하므로 이미지가 빈칸으로 깨지는 상황을 줄입니다. 다만 프론트에서는 이 저품질 fallback을 정상 생성 결과로 저장하지 않습니다.
-- 2026-05-25 최종 수정: 개발 중 반복 테스트를 막던 일일 생성 제한 기본값을 `0`으로 바꿨습니다. 제한이 필요하면 `APP_GENERATION_DAILY_LIMIT` 환경변수로 다시 켭니다.
-- Gemini Vision 실패 시에도 업로드 이미지를 로컬로 샘플링해 흰/검흰/갈색/어두운 털, 포장 산책로, 초록 배경, 물가, 실내, 리드줄 색 단서를 추정합니다.
-- 개발 확인용 `POST /api/diagnostics/vision-test`와 `POST /api/diagnostics/image-generation-test`가 있습니다.
+## 맡은 일
 
-## 실행
+| 영역 | 담당 내용 | 사용 기술 |
+| --- | --- | --- |
+| AI 오케스트레이션 | 사진 분석, 관광지 탐색, 일기 작성, 이미지 생성 역할 분리와 전달 순서 설계 | Ennoia, prompt engineering |
+| 외부 API 파이프라인 | 반려동물 동반·무장애·두루누비·TourAPI 데이터를 추천 근거로 연결 | 한국관광공사 OpenAPI |
+| 이미지 생성 연결 | Ennoia 요청을 Hugging Face Gradio 규격으로 바꾸는 프록시 설계·배포 | FastAPI, Python, Gradio Client |
+| 프롬프트 조정 | 사진 단서, 강아지 프로필, 추천 근거가 다음 에이전트에서 빠지지 않도록 출력 규칙 고정 | structured prompt, role prompt |
 
-Frontend:
+## 1. 한 프롬프트에 섞여 있던 역할을 네 단계로 나눴다
 
-```powershell
-cd tour-diary-web
-npm.cmd run dev
+**문제**
+
+사진 분석, 관광지 추천, 일기 작성, 이미지 생성을 한 번에 처리하면 어느 단계에서 결과가 달라졌는지 찾기 어려웠다. 이미지가 실사나 종이 사진처럼 생성되거나, 추천 이유가 빠지거나, 화면에 HTML 조각이 노출되는 문제가 함께 발생했다.
+
+**해결**
+
+에이전트마다 입력과 출력 책임을 하나씩 부여했다.
+
+```mermaid
+flowchart LR
+    U[산책 사진·강아지 프로필] --> V[Vision<br/>강아지·풍경 단서]
+    V --> P[Planner<br/>관광데이터 후보]
+    P --> W[Writer<br/>강아지 1인칭 일기]
+    W --> I[Painter<br/>그림 생성 프롬프트]
+    I --> R[그림일기·추천 카드]
 ```
 
-Backend:
+- Vision은 사진에서 강아지, 배경, 행동 단서만 추출한다.
+- Planner는 공공데이터 후보와 추천 근거를 만든다.
+- Writer는 강아지 프로필과 사진 단서로 1인칭 일기를 쓴다.
+- Painter는 앞 단계 결과를 그림 생성용 프롬프트로 바꾼다.
 
-```powershell
-cd tour-diary
-.\gradlew.bat bootRun
+**결과**
+
+결과 화면을 `사진 기반 일러스트`, `강아지 말투의 2문장 일기`, `근거가 표시된 추천 카드` 세 영역으로 고정했다. 어느 단계의 출력이 화면에 반영되는지도 분리해서 확인할 수 있게 됐다.
+
+## 2. Ennoia가 만들 수 없는 Hugging Face 요청을 프록시로 분리했다
+
+**문제**
+
+Ennoia 에이전트 툴에서는 Hugging Face Gradio Space가 요구하는 요청 배열을 코드로 조립하고, 응답에 포함된 파일 경로나 중첩 객체를 다시 해석할 수 없었다. 프롬프트는 만들어도 이미지 URL을 서비스 화면까지 전달하지 못했다.
+
+**해결**
+
+FastAPI 프록시를 별도 서버로 배포했다. Ennoia는 프롬프트만 JSON으로 보내고, 프록시는 Gradio 호출과 결과 해석을 담당한다.
+
+![Ennoia와 Hugging Face 사이의 프록시 흐름](docs/assets/portfolio/proxy-flow.svg)
+
+프록시는 두 요청 형태를 받는다.
+
+```json
+{"prompt":"강아지 시점의 크레용 그림일기","seed":1234}
 ```
 
-## 확인
-
-```powershell
-cd tour-diary-web
-npm.cmd run build
+```json
+{"data":["강아지 시점의 크레용 그림일기",768,1024,8,1234,false]}
 ```
 
-```powershell
-cd tour-diary
-.\gradlew.bat test
-```
+Hugging Face 응답이 URL, 로컬 파일, 배열, 중첩 객체 중 어떤 형태로 와도 이미지 값을 찾고, Ennoia가 사용할 `image_url`을 반환하도록 정리했다. 구현은 [HF_ProxyAPI](https://github.com/kanghyunsoon/HF_ProxyAPI)에서 확인할 수 있다.
 
+## 3. 추천 결과에 공공데이터 근거를 남겼다
+
+**문제**
+
+장소 이름만 생성하면 사용자는 추천 이유를 확인할 수 없다. 반려견 동반 여부나 이동 편의 정보가 없는 추천은 실제 산책 후보를 고르는 데 쓰기 어렵다.
+
+**해결**
+
+Planner가 네 종류의 한국관광공사 데이터를 목적별로 조회하도록 구성했다.
+
+| 데이터 | 사용한 근거 |
+| --- | --- |
+| 반려동물 동반 여행 서비스 | 반려동물 동반 가능 시설과 산책 후보 |
+| 무장애 관광정보 API | 노견, 펫 유모차, 보호자 이동 편의 |
+| 두루누비 걷기길 데이터 | 산책로와 걷기 후보 |
+| 국문 관광정보 TourAPI | 관광지 명칭, 위치, 상세 정보 |
+
+추천 카드에는 장소명만 표시하지 않고 데이터 출처와 선택 이유를 함께 노출했다.
+
+## 결과 화면
+
+<table>
+  <tr>
+    <td width="50%" align="center"><img src="img/render.png" alt="강아지 시점 그림일기" /></td>
+    <td width="50%" align="center"><img src="img/recommend.png" alt="근거가 표시된 추천 코스 카드" /></td>
+  </tr>
+  <tr>
+    <td align="center">사진 단서와 프로필을 반영한 그림일기</td>
+    <td align="center">공공데이터 근거를 표시한 추천 카드</td>
+  </tr>
+</table>
+
+## 기술 선택
+
+| 선택 | 이유 |
+| --- | --- |
+| Ennoia | 에이전트 역할과 전달 순서를 구성하고 서비스 화면까지 연결하기 위해 사용 |
+| FastAPI 프록시 | 에이전트 툴에 없는 요청 변환과 응답 파싱을 서버 경계로 분리 |
+| Hugging Face Gradio Space | 이미지 생성 모델을 HTTP 호출 대상으로 사용 |
+| 한국관광공사 OpenAPI | 추천 문장에 확인 가능한 관광·이동 근거를 포함 |
+| 구조화 프롬프트 | 에이전트별 출력 범위와 다음 단계 입력 형식을 고정 |
+
+## 확인 가능한 범위
+
+- 서비스 화면과 발표 자료로 에이전트 입력·출력 흐름을 확인할 수 있다.
+- 프록시 저장소에서 Ennoia 요청 변환과 Hugging Face 응답 처리 코드를 확인할 수 있다.
+
+## 현재 한계
+
+- Ennoia 원본 애플리케이션 소스는 export할 수 없어 이 저장소만으로 제출 서비스를 재현할 수 없다.
+- 모델 품질, 응답 시간, 사용자 평가를 같은 조건에서 측정한 기록은 없다.
+- Hugging Face Space의 모델과 응답 형식이 바뀌면 프록시도 함께 수정해야 한다.
+- 프록시는 결과 파일 만료와 재시도 정책까지 구현한 운영 서버가 아니라 공모전 연결을 위한 어댑터다.
+
+## 코드와 설계 기록
+
+- [AI 에이전트 오케스트레이션과 프록시 설계](docs/portfolio-ai-orchestration.md)
+- [실제 프록시 구현](https://github.com/kanghyunsoon/HF_ProxyAPI/blob/main/main.py)
