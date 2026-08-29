@@ -13,6 +13,15 @@
   <a href="https://github.com/kanghyunsoon/HF_ProxyAPI">Hugging Face 프록시</a>
 </p>
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Ennoia-111827?style=flat-square" alt="Ennoia" />
+  <img src="https://img.shields.io/badge/AI_Agent_Orchestration-7C3AED?style=flat-square" alt="AI Agent Orchestration" />
+  <img src="https://img.shields.io/badge/Hugging_Face-FFD21E?style=flat-square&amp;logo=huggingface&amp;logoColor=111827" alt="Hugging Face" />
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&amp;logo=fastapi&amp;logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white" alt="Python" />
+  <img src="https://img.shields.io/badge/TourAPI-0066CC?style=flat-square&amp;logo=openapiinitiative&amp;logoColor=white" alt="한국관광공사 OpenAPI" />
+</p>
+
 > 2026 관광데이터 활용 공모전 · 생성형 AI 활용 관광 프롬프트 부문
 >
 > 팀 프로젝트 · 강형순 담당: **AI 에이전트 오케스트레이션, 외부 API 파이프라인, 프록시 서버 배포, 프롬프트 설계**
